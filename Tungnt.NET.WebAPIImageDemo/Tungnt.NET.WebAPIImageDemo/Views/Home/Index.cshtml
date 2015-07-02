@@ -1,0 +1,148 @@
+﻿<style>
+    .avatarDiv {
+        position: relative;
+        width: 128px;
+        height: 128px;
+    }
+
+    .caption {
+        display: none;
+        position: absolute;
+        background: rgba(0, 0, 0, 0.4);
+        width: 128px;
+        height: 128px;
+        line-height: 128px;
+    }
+
+        .caption p {
+            padding: 4px;
+        }
+</style>
+
+<div class="jumbotron">
+    <p class="lead">Using Web API Service in ASP.NET MVC: User Profile Avatar Change Demo</p>
+</div>
+<form role="form">
+    <div class="form-group">
+        @*Notification Alert Container*@
+        <div id="notification">
+        </div>
+
+        @*Avatar Container*@
+        <div class="avatarDiv">
+            <div class="caption">
+                <p>
+                    <input type="button" class="btn btn-warning text-center" onclick="showImagePreview();" value="Choose Avatar"/>
+                </p>
+            </div>
+            <img alt="Avatar" src="~/Avatar/anonymous.gif" class="img-rounded" width="128" height="128" id="imgAvatar" />
+            <input id="iUserAvatar" type="file" style="height:0; width:0; visibility:hidden" />
+        </div>
+    </div>
+    <div class="form-group form-inline">
+        <input id="txtUserId" type="text" class="form-control" placeholder="Enter UserId to get or set avatar" />
+    </div>
+    <div class="form-group form-inline">
+        <input id="btnGetUserAvatar" type="button" width="128" class="btn btn-primary" value="Get Avatar" onclick="getUserAvatar();" />
+        <input id="btnSetUserAvatar" type="button" width="128" class="btn btn-primary" value="Set Avatar" onclick="setUserAvatar();" />
+    </div>
+</form>
+
+@section scripts{
+    <script>
+
+        $(document).ready(function () {
+            //Show-hide button choose avatar when hover image.
+            $(function () {
+                $('.avatarDiv').hover(function () {
+                    $(this).find('.caption').slideDown(250);
+                },
+                function () {
+                    $(this).find('.caption').slideUp(250);
+                });
+            });
+        });
+
+        //Download User Avatar
+        //Created by tungnt.net - 6/2015
+        function getUserAvatar() {
+            AjaxRequest("Avatar?userId=" + $("#txtUserId").val(), "GET", {}, getCompletedUserAvatar);
+        }
+
+        //AJAX Request helper method
+        //Created by tungnt.net - 6/2015
+        function AjaxRequest(methodName, methodType, data, callback) {
+            alert(methodName);
+            $.ajax({
+                type: methodType,
+                url: "api/" + methodName,
+                data: JSON.stringify(data),
+                contentType: "application/json; charset=utf-8",
+                dataType: "json",
+                success: function (result, status, xhr) {
+                    //When success the callback function is called
+                    if (callback) {
+                        callback(result);
+                    }
+                }
+            });
+        }
+        
+        //Callback when complete download avatar
+        //Created by tungnt.net - 6/2015
+        function getCompletedUserAvatar(data) {
+            if (data.UserAvatarBase64String !== null) {
+                $("#imgAvatar").attr("src", "data:image/jpg;base64," + data.UserAvatarBase64String);
+            } else {
+                showAlertInfo("alert-danger", "No user have this UserId. Please check again!");
+            }
+        }
+
+        //Show alert info helper method
+        //Created by tungnt.net - 6/2015
+        function showAlertInfo(alertClass, alertMessage) {
+            $('#notification').html("<div class='alert-info'><div  class='alert " + alertClass + " alert-dismissible fade in'><button type='button' class='close' data-dismiss='alert' aria-label='Close'><span aria-hidden='true'>×</span></button><strong>" + alertMessage + "</strong></div></div>");
+            $("#notification").fadeTo(2000, 500).slideUp(500, function () {
+                $('#alert-info').alert('close');
+            });
+        }
+
+        //Choose image from disk and preview before upload
+        //Created by tungnt.net - 6/2015
+        function showImagePreview() {
+            var fileInput = $("#iUserAvatar");
+            if (fileInput !== null) {
+                //Open file dialog to choose image
+                fileInput.trigger("click");
+                fileInput.change(function () {
+                    if (this.files && this.files[0]) {
+                        //When choose image complete using FileReader to convert image to Base64 string
+                        var reader = new FileReader();
+                        reader.onload = function (e) {
+                            $('#imgAvatar').attr('src', e.target.result);
+                        }
+                        reader.readAsDataURL(this.files[0])
+                    }
+                });
+            }
+        }
+
+        //Upload avatar to server
+        //Created by tungnt.net - 6/2015
+        function setUserAvatar() {
+            var userObject = { };
+            userObject.UserId = $("#txtUserId").val();
+            userObject.UserAvatarBase64String = $("#imgAvatar").attr("src").split(",")[1];
+            AjaxRequest("Avatar", "POST", userObject, setAvatarCompleted);
+        }
+
+        //Callback when complete upload avatar
+        //Created by tungnt.net - 6/2015
+        function setAvatarCompleted(data) {
+            if (data === true) {
+                showAlertInfo("alert-success", "User profile avatar is saved successful!");
+            }
+        }
+    </script>
+}
+
